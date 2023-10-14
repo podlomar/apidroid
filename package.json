@@ -1,0 +1,27 @@
+{
+  "name": "serve-json",
+  "version": "0.0.0",
+  "description": "Serve json data from files on disk",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsc -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/podlomar/serve-json.git"
+  },
+  "author": "Martin Podloucký",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/podlomar/serve-json/issues"
+  },
+  "homepage": "https://github.com/podlomar/serve-json#readme",
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.2",
+    "@types/express": "^4.17.18",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
