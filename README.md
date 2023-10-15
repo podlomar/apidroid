@@ -7,7 +7,7 @@ A simple HTTP server that serves JSON files from a directory. Useful for mocking
 To serve the contents of the `./data` directory on port `4000`:
 
 ```bash
-$ npx jsonhost ./data 4000
+$ npx jsonhost ./data --port 4000
 ```
 
 ## Directory structure
