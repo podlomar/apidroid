@@ -1,5 +1,5 @@
 {
-  "name": "serve-json",
+  "name": "jsonhost",
   "version": "0.0.1",
   "description": "Serve json data from files on disk",
   "main": "index.js",
@@ -17,14 +17,14 @@
   "bin": "./dist/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/podlomar/serve-json.git"
+    "url": "git+https://github.com/podlomar/jsonhost.git"
   },
   "author": "Martin Podloucký",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/podlomar/serve-json/issues"
+    "url": "https://github.com/podlomar/jsonhost/issues"
   },
-  "homepage": "https://github.com/podlomar/serve-json#readme",
+  "homepage": "https://github.com/podlomar/jsonhost#readme",
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",
     "@types/cors": "^2.8.14",
