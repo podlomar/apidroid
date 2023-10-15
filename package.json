@@ -1,6 +1,6 @@
 {
   "name": "jsonhost",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Serve json data from files on disk",
   "main": "index.js",
   "type": "module",
