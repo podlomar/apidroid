@@ -11,6 +11,9 @@
     "prepublishOnly": "npm run build",
     "test": "mocha"
   },
+  "files": [
+    "dist"
+  ],
   "bin": "./dist/index.js",
   "repository": {
     "type": "git",
