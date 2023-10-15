@@ -14,17 +14,23 @@ declare global {
 
 const collectionMiddleware = (collections: Collections) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const collectionResult = await collections.load(req.originalUrl);
+    const segments = req.originalUrl.split('/');
+    const itemId = Number(segments.at(-1));
+    
+    const urlPath = Number.isNaN(itemId)
+      ? req.originalUrl
+      : req.originalUrl.slice(0, req.originalUrl.lastIndexOf('/'));
+
+    const collectionResult = await collections.load(urlPath);
     if (collectionResult.isFail()) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',
-        message: `Collection with path ${req.originalUrl} not found`,
+        message: `Collection with path ${urlPath} not found`,
       }]));
       return;
     };
 
-    const collection = collectionResult.get();
-    req.collection = collection;
+    req.collection = collectionResult.get();
     next();
   };
 }
@@ -42,7 +48,7 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   const collectionPath = `^/api(/${pathSegment})+`;
   const idPattern = '[0-9]+';
 
-  server.use(new RegExp(`${collectionPath}$`), collectionMiddleware(collections));
+  server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collections));
   
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
     res.json(payload('ok', req.collection.items));
@@ -100,53 +106,55 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   });
 
   server.put(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
-    const fsPath = path.resolve(
-      collections.options.baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
-    );
-    const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
+    const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
+    (await collections.update(req.collection, { id, ...req.body })).match({
+      success() {
+        res.json(payload('ok', `Item with id ${id} was updated`));
+      },
+      fail(code) {
+        if (code === 'not-found') {
+          res.status(404).json(payload('bad-request', [{
+            code: 'not-found',
+            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+          }]));
+          return;
+        }
 
-    const collectionResult = await collections.load(fsPath);
-    if (collectionResult.isFail()) {
-      res.status(404).send('Not found');
-      return;
-    };
-
-    const collection = collectionResult.get();
-    const result = await collections.update(collection, { id, ...req.body });
-    if (result.isFail()) {
-      res.status(500).json(payload('server-error', [{
-        code: 'error',
-        message: 'Error while saving item',
-      }]));
-      return;
-    }
-
-    res.json(payload('ok', result.get()));
+        if (code === 'error') {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while saving item',
+          }]));
+          return;
+        }
+      }
+    });    
   });
 
   server.delete(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
-    const fsPath = path.resolve(
-      collections.options.baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
-    );
-    const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
+    const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
+    (await collections.delete(req.collection, id)).match({
+      success() {
+        res.json(payload('ok', `Item with id ${id} was deleted`));
+      },
+      fail(code) {
+        if (code === 'not-found') {
+          res.status(404).json(payload('bad-request', [{
+            code: 'not-found',
+            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+          }]));
+          return;
+        }
 
-    const collectionResult = await collections.load(fsPath);
-    if (collectionResult.isFail()) {
-      res.status(404).send('Not found');
-      return;
-    };
-
-    const collection = collectionResult.get();
-    const result = await collections.delete(collection, id);
-    if (result.isFail()) {
-      res.status(500).json(payload('server-error', [{
-        code: 'error',
-        message: 'Error while saving item',
-      }]));
-      return;
-    }
-
-    res.json(payload('ok', `Item with id ${id} was deleted`));
+        if (code === 'error') {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while saving item',
+          }]));
+          return;
+        }
+      }
+    });
   });
 
   return server;

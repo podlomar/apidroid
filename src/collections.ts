@@ -60,11 +60,10 @@ export class Collections {
     }
 
     const newItem = { id: collection.lastId + 1, ...item };
+    collection.items.push(newItem);
+
     try {
-      await fs.writeFile(
-        collection.filePath,
-        JSON.stringify([...collection.items, newItem], null, 2),
-      );
+      await this.writeCollection(collection);
     } catch (error) {
       return Result.fail('error');
     }
@@ -74,32 +73,46 @@ export class Collections {
 
   public update = async <T>(
     collection: Collection, item: WithId<T>,
-  ): Promise<Result<WithId<T>, 'error'>> => {
-    const items = collection.items.map((i) => i.id === item.id ? item : i);
-    await fs.writeFile(
-      collection.filePath,
-      JSON.stringify(items, null, 2),
-    );
-  
-    return Result.success(item);
-  }
+  ): Promise<Result<'ok', 'not-found' | 'error'>> => {
+    const itemIndex = collection.items.findIndex((i) => i.id === item.id);
+    if (itemIndex === -1) {
+      return Result.fail('not-found');
+    }
+    
+    collection.items[itemIndex] = item;
 
-  public delete = async <T>(
-    collection: Collection, id: number,
-  ): Promise<Result<'ok', 'error'>> => {
-    const items = collection.items.filter((item) => item.id !== id);
-    await fs.writeFile(
-      collection.filePath,
-      JSON.stringify(items, null, 2),
-    );
+    try {
+      await this.writeCollection(collection);
+    } catch (error) {
+      return Result.fail('error');
+    }
   
     return Result.success('ok');
   }
 
-  private writeCollection = async (collection: Collection) => {
-    await fs.writeFile(
+  public delete = async <T>(
+    collection: Collection, id: number,
+  ): Promise<Result<'ok', 'not-found' | 'error'>> => {
+    const itemIndex = collection.items.findIndex((i) => i.id === id);
+    if (itemIndex === -1) {
+      return Result.fail('not-found');
+    }
+
+    collection.items.splice(itemIndex, 1);
+    
+    try {
+      await this.writeCollection(collection);
+    } catch (error) {
+      return Result.fail('error');
+    }
+  
+    return Result.success('ok');
+  }
+
+  private writeCollection = (collection: Collection) => {
+    return fs.writeFile(
       collection.filePath,
-      JSON.stringify(collection.items, null, 2),
+      `${JSON.stringify(collection.items, null, 2)}\n`,
     );
   }
 };

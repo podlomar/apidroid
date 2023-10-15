@@ -132,3 +132,72 @@ describe('POST item to collection', () => {
     ]);
   });
 });
+
+describe('PUT item in collection', () => {
+  it('should update item in a collection', async function() {
+    const response = await request
+      .put('/api/products/0')
+      .send({ name: 'Green Apples' })
+      .expect(200);
+
+    expect(response.body).to.have.property('status').that.equals('ok');
+    expect(response.body).to.have.property('result').that.equals('Item with id 0 was updated');
+  });
+
+  it('should return 404 bad-request for non-existing collection', async function() {
+    const response = await request
+      .put('/api/non-existing/0')
+      .send({ name: 'Green Apples' })
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'not-found', message: `Collection with path /api/non-existing not found` },
+    ]);
+  });
+
+  it('should return 404 bad-request for non-existing item', async function() {
+    const response = await request
+      .put('/api/customers/5')
+      .send({ name: 'Leonardo DiCaprio' })
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'not-found', message: `Item with id 5 not found in collection /api/customers` },
+    ]);
+  });
+});
+
+describe('DELETE item from collection', () => {
+  it('should delete item from a collection', async function() {
+    const response = await request
+      .delete('/api/products/0')
+      .expect(200);
+
+    expect(response.body).to.have.property('status').that.equals('ok');
+    expect(response.body).to.have.property('result').that.equals('Item with id 0 was deleted');
+  });
+
+  it('should return 404 bad-request for non-existing collection', async function() {
+    const response = await request
+      .delete('/api/non-existing/0')
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'not-found', message: `Collection with path /api/non-existing not found` },
+    ]);
+  });
+
+  it('should return 404 bad-request for non-existing item', async function() {
+    const response = await request
+      .delete('/api/customers/5')
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'not-found', message: `Item with id 5 not found in collection /api/customers` },
+    ]);
+  });
+});
