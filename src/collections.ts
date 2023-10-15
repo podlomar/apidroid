@@ -14,7 +14,7 @@ export const loadCollection = async (
   fsPath: string,
 ): Promise<Result<Collection, 'error'>> => {
   const filePath = existsSync(fsPath)
-    ? path.resolve(fsPath, 'collection.json')
+    ? path.resolve(fsPath, 'items.json')
     : fsPath + '.json';
   
   const content = await fs.readFile(filePath, 'utf-8');
