@@ -20,7 +20,10 @@ export const createServer = (baseDir: string) => {
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
     const collectionResult = await collections.load(req.path);
     if (collectionResult.isFail()) {
-      res.status(404).send('Not found');
+      res.status(404).json(payload('bad-request', [{
+        code: 'not-found',
+        message: `Collection with path ${req.path} not found`,
+      }]));
       return;
     };
 
@@ -29,12 +32,15 @@ export const createServer = (baseDir: string) => {
   });
 
   server.get(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
-    const urlPath = req.path.slice(1, req.path.lastIndexOf('/'));
+    const urlPath = req.path.slice(0, req.path.lastIndexOf('/'));
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 
     const collectionResult = await collections.load(urlPath);
     if (collectionResult.isFail()) {
-      res.status(404).send('Not found');
+      res.status(404).json(payload('bad-request', [{
+        code: 'not-found',
+        message: `Collection with path ${urlPath} not found`,
+      }]));
       return;
     };
 
@@ -43,7 +49,7 @@ export const createServer = (baseDir: string) => {
     if (item === undefined) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',
-        message: `Item with id ${id} not found`,
+        message: `Item with id ${id} not found in collection ${urlPath}`,
       }]));
       return;
     }
@@ -75,7 +81,7 @@ export const createServer = (baseDir: string) => {
 
   server.put(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
     const fsPath = path.resolve(
-      baseDir, req.path.slice(1, req.path.lastIndexOf('/')),
+      baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
     );
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 
@@ -100,7 +106,7 @@ export const createServer = (baseDir: string) => {
 
   server.delete(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
     const fsPath = path.resolve(
-      baseDir, req.path.slice(1, req.path.lastIndexOf('/')),
+      baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
     );
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 

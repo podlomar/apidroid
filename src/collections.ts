@@ -23,20 +23,24 @@ export class Collections {
       ? path.resolve(fsPath, 'items.json')
       : fsPath + '.json';
     
-    const content = await fs.readFile(filePath, 'utf-8');
-    const items = JSON.parse(content);
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const items = JSON.parse(content);
+      
+      let lastId = -1;
+      for (const item of items) {
+        const numId = Number(item.id);
+        if (Number.isNaN(numId)) {
+          continue;
+        }
     
-    let lastId = -1;
-    for (const item of items) {
-      const numId = Number(item.id);
-      if (Number.isNaN(numId)) {
-        continue;
+        lastId = numId > lastId ? numId : lastId;
       }
-  
-      lastId = numId > lastId ? numId : lastId;
+    
+      return Result.success({ filePath, lastId, items });
+    } catch (error) {
+      return Result.fail('error');
     }
-  
-    return Result.success({ filePath, lastId, items });
   };
 
   public insert = async <T>(
