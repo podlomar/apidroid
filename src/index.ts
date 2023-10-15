@@ -1,10 +1,11 @@
 import { createServer } from './server.js';
+import parser from 'yargs-parser';
 
-const baseDir = process.argv[2];
-const port = process.argv[3] ?? 4000;
+const argv = parser(process.argv.slice(2));
+const port = argv.port || 4000;
 
 const server = createServer({
-  baseDir, 
+  baseDir: argv._[0]?.toString(),
   maxItems: 1000,
 });
 
