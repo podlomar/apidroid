@@ -42,11 +42,28 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
 
   server.use(cors());
   server.use('/assets', express.static(path.resolve(collections.options.baseDir, 'assets')));
-  server.use(express.json());
+  server.use(express.json({
+    limit: '10kb',
+  }));
 
   const pathSegment = '[a-z][a-z_-]*';
   const collectionPath = `^/api(/${pathSegment})+`;
   const idPattern = '[0-9]+';
+
+  server.use((error: Error, req: Request, res: Response, next: NextFunction): void => {
+    if (error instanceof SyntaxError) {
+      res.status(400).json(payload('bad-request', [{
+        code: 'invalid-json',
+        message: 'Invalid JSON',
+      }]));
+    } else {
+      res.status(500).json(payload('server-error', [{
+        code: 'error',
+        message: 'Internal server error',
+        meta: { error },
+      }]));
+    }
+  });
 
   server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collections));
   
