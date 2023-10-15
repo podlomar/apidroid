@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Serve json data from files on disk",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsc -w"
   },
@@ -19,9 +20,11 @@
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",
     "@types/express": "^4.17.18",
+    "nodemon": "^3.0.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "monadix": "^1.0.6"
   }
 }
