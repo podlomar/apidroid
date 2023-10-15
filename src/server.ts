@@ -21,17 +21,46 @@ const collectionMiddleware = (collections: Collections) => {
       ? req.originalUrl
       : req.originalUrl.slice(0, req.originalUrl.lastIndexOf('/'));
 
-    const collectionResult = await collections.load(urlPath);
-    if (collectionResult.isFail()) {
-      res.status(404).json(payload('bad-request', [{
-        code: 'not-found',
-        message: `Collection with path ${urlPath} not found`,
-      }]));
-      return;
-    };
+    (await collections.load(urlPath)).match({
+      success(collection) {
+        req.collection = collection;
+        next();
+      },
+      fail(code) {
+        if (code === 'invalid-type') {
+          res.status(500).json(payload('server-error', [{
+            code: 'invalid-type',
+            message: `Collection with path ${urlPath} is not a valid collection type`,
+            meta: 'The collection must be an array of objects with an id property of type number',
+          }]));
+          return;
+        }
 
-    req.collection = collectionResult.get();
-    next();
+        if (code === 'invalid-json') {
+          res.status(500).json(payload('server-error', [{
+            code: 'invalid-json',
+            message: `Collection with path ${urlPath} does not have a valid JSON syntax`,
+          }]));
+          return;
+        }
+
+        if (code === 'not-found') {
+          res.status(404).json(payload('bad-request', [{
+            code: 'not-found',
+            message: `Collection with path ${urlPath} not found`,
+          }]));
+          return;
+        }
+
+        if (code === 'unknown') {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while loading collection file',
+          }]));
+          return;
+        }
+      }
+    });
   };
 }
 

@@ -94,6 +94,32 @@ describe('GET item from collection', () => {
       { code: 'not-found', message: `Item with id 2 not found in collection /api/products` },
     ]);
   });
+
+  it('should return 500 server-error for invalid JSON syntax', async function() {
+    const response = await request
+      .get('/api/nojson')
+      .expect(500);
+
+    expect(response.body).to.have.property('status').that.equals('server-error');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'invalid-json', message: 'Collection with path /api/nojson does not have a valid JSON syntax' },
+    ]);
+  });
+
+  it('should return 500 server-error for invalid JSON type', async function() {
+    const response = await request
+      .get('/api/notarray')
+      .expect(500);
+
+    expect(response.body).to.have.property('status').that.equals('server-error');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { 
+        code: 'invalid-type',
+        message: 'Collection with path /api/notarray is not a valid collection type',
+        meta: 'The collection must be an array of objects with an id property of type number',
+      },
+    ]);
+  });
 });
 
 describe('POST item to collection', () => {

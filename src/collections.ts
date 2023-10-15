@@ -16,6 +16,20 @@ export interface CollectionsOptions {
   readonly maxItems: number,
 }
 
+const checkFormat = (data: any): boolean => {
+  if (!Array.isArray(data)) {
+    return false;
+  }
+
+  for (const item of data) {
+    if (typeof item !== 'object' || item === null) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 export class Collections {
   public options: CollectionsOptions;
 
@@ -26,7 +40,9 @@ export class Collections {
     };
   }
 
-  public load = async (urlPath: string): Promise<Result<Collection, 'error'>> => {
+  public load = async (
+    urlPath: string,
+  ): Promise<Result<Collection, 'invalid-type' | 'invalid-json' | 'not-found' | 'unknown'>> => {
     const fsPath = path.resolve(this.options.baseDir, urlPath.slice(1));
     const filePath = existsSync(fsPath)
       ? path.resolve(fsPath, 'items.json')
@@ -35,7 +51,10 @@ export class Collections {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const items = JSON.parse(content);
-      
+      if (!checkFormat(items)) {
+        return Result.fail('invalid-type');
+      }
+
       let lastId = -1;
       for (const item of items) {
         const numId = Number(item.id);
@@ -47,8 +66,16 @@ export class Collections {
       }
     
       return Result.success({ filePath, urlPath, lastId, items });
-    } catch (error) {
-      return Result.fail('error');
+    } catch (error: any) {
+      if (error instanceof SyntaxError) {
+        return Result.fail('invalid-json');
+      }
+
+      if (error.code === 'ENOENT') {
+        return Result.fail('not-found');
+      }
+
+      return Result.fail('unknown');
     }
   };
 
