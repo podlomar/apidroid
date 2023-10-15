@@ -1,8 +1,33 @@
 import path from 'path';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { Collections } from './collections.js';
+import { Collection, Collections } from './collections.js';
 import { payload } from './payload.js';
+
+declare global {
+  namespace Express {
+    export interface Request {
+      collection: Collection,
+    }
+  }
+}
+
+const collectionMiddleware = (collections: Collections) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const collectionResult = await collections.load(req.originalUrl);
+    if (collectionResult.isFail()) {
+      res.status(404).json(payload('bad-request', [{
+        code: 'not-found',
+        message: `Collection with path ${req.originalUrl} not found`,
+      }]));
+      return;
+    };
+
+    const collection = collectionResult.get();
+    req.collection = collection;
+    next();
+  };
+}
 
 export const createServer = (baseDir: string) => {
   const collections = new Collections(baseDir);
@@ -17,18 +42,10 @@ export const createServer = (baseDir: string) => {
   const collectionPath = `^/api(/${pathSegment})+`;
   const idPattern = '[0-9]+';
 
+  server.use(new RegExp(`${collectionPath}$`), collectionMiddleware(collections));
+  
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
-    const collectionResult = await collections.load(req.path);
-    if (collectionResult.isFail()) {
-      res.status(404).json(payload('bad-request', [{
-        code: 'not-found',
-        message: `Collection with path ${req.path} not found`,
-      }]));
-      return;
-    };
-
-    const collection = collectionResult.get();
-    res.json(payload('ok', collection.items));
+    res.json(payload('ok', req.collection.items));
   });
 
   server.get(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
@@ -58,16 +75,7 @@ export const createServer = (baseDir: string) => {
   });
 
   server.post(new RegExp(`${collectionPath}$`), async (req, res) => {
-    const collectionResult = await collections.load(req.path);
-    if (collectionResult.isFail()) {
-      res.status(404).send('Not found');
-      return;
-    };
-
-    const collection = collectionResult.get();
-    const body = req.body;
-
-    const newItem = await collections.insert(collection, body);
+    const newItem = await collections.insert(req.collection, req.body);
     if (newItem.isFail()) {
       res.status(500).json(payload('server-error', [{
         code: 'error',
@@ -76,7 +84,7 @@ export const createServer = (baseDir: string) => {
       return;
     }
 
-    res.status(201).json(payload('ok', { id: newItem.get().id }));
+    res.status(201).json(payload('ok', { insertedId: newItem.get().id }));
   });
 
   server.put(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {

@@ -90,3 +90,27 @@ describe('GET item from collection', () => {
   });
 });
 
+describe('POST item to collection', () => {
+  it('should create item in a collection', async function() {
+    const response = await request
+      .post('/api/products')
+      .send({ name: 'Bananas' })
+      .expect(201);
+
+    expect(response.body).to.have.property('status').that.equals('ok');
+    expect(response.body).to.have.property('result');
+    expect(response.body.result).to.deep.equal({ insertedId: 2 });
+  });
+
+  it('should return 404 bad-request for non-existing collection', async function() {
+    const response = await request
+      .post('/api/non-existing')
+      .send({ name: 'Bananas' })
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'not-found', message: `Collection with path /api/non-existing not found` },
+    ]);
+  });
+});
