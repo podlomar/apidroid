@@ -1,7 +1,7 @@
 import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { Collection, Collections } from './collections.js';
+import { Collection, Collections, CollectionsOptions } from './collections.js';
 import { payload } from './payload.js';
 
 declare global {
@@ -29,13 +29,13 @@ const collectionMiddleware = (collections: Collections) => {
   };
 }
 
-export const createServer = (baseDir: string) => {
-  const collections = new Collections(baseDir);
+export const createServer = (options: Partial<CollectionsOptions>) => {
+  const collections = new Collections(options);
 
   const server = express();
 
   server.use(cors());
-  server.use('/assets', express.static(path.resolve(baseDir, 'assets')));
+  server.use('/assets', express.static(path.resolve(collections.options.baseDir, 'assets')));
   server.use(express.json());
 
   const pathSegment = '[a-z][a-z_-]*';
@@ -66,7 +66,7 @@ export const createServer = (baseDir: string) => {
     if (item === undefined) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',
-        message: `Item with id ${id} not found in collection ${urlPath}`,
+        message: `Item with id ${id} not found in collection ${collection.urlPath}`,
       }]));
       return;
     }
@@ -75,21 +75,33 @@ export const createServer = (baseDir: string) => {
   });
 
   server.post(new RegExp(`${collectionPath}$`), async (req, res) => {
-    const newItem = await collections.insert(req.collection, req.body);
-    if (newItem.isFail()) {
-      res.status(500).json(payload('server-error', [{
-        code: 'error',
-        message: 'Error while saving item',
-      }]));
-      return;
-    }
+    (await collections.insert(req.collection, req.body)).match({
+      success(item) {
+        res.status(201).json(payload('ok', { insertedId: item.id }));
+      },
+      fail(code) {
+        if (code === 'max-items') {
+          res.status(400).json(payload('bad-request', [{
+            code: 'max-items',
+            message: `Max items of ${collections.options.maxItems} reached for collection ${req.collection.urlPath}`,
+          }]));
+          return;
+        }
 
-    res.status(201).json(payload('ok', { insertedId: newItem.get().id }));
+        if (code === 'error') {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while saving item',
+          }]));
+          return;
+        }
+      }
+    });
   });
 
   server.put(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
     const fsPath = path.resolve(
-      baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
+      collections.options.baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
     );
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 
@@ -114,7 +126,7 @@ export const createServer = (baseDir: string) => {
 
   server.delete(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
     const fsPath = path.resolve(
-      baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
+      collections.options.baseDir, req.path.slice(0, req.path.lastIndexOf('/')),
     );
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 

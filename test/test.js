@@ -3,7 +3,10 @@ import supertest from 'supertest';
 import { expect } from 'chai';
 
 const request = supertest(
-  createServer('test/db01'),
+  createServer({
+    baseDir: 'test/db01',
+    maxItems: 5,
+  }),
 );
 
 describe('CORS for /', () => {
@@ -41,6 +44,9 @@ describe('GET collection', () => {
     expect(response.body.result).to.deep.equal([
       { id: 0, name: 'John Doe' },
       { id: 1, name: 'Will Smith' },
+      { id: 2, name: 'Jennifer Aniston' },
+      { id: 3, name: 'Brad Pitt' },
+      { id: 4, name: 'Angelina Jolie' },
     ]);
   });
 
@@ -111,6 +117,18 @@ describe('POST item to collection', () => {
     expect(response.body).to.have.property('status').that.equals('bad-request');
     expect(response.body).to.have.property('errors').to.deep.equal([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
+    ]);
+  });
+
+  it('should return 400 bad-request for reaching maxItems', async function() {
+    const response = await request
+      .post('/api/customers')
+      .send({ name: 'Leonardo DiCaprio' })
+      .expect(400);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').to.deep.equal([
+      { code: 'max-items', message: `Max items of 5 reached for collection /api/customers` },
     ]);
   });
 });
