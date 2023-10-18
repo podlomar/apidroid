@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { execFilter, execQuery, parseSearchParams } from './query.js';
 import { createServer } from './server.js';
 import parser from 'yargs-parser';
+import detect from 'detect-port';
 
 const argv = parser(process.argv.slice(2));
 const port = argv.port || 4000;
@@ -12,6 +12,12 @@ const server = createServer({
   maxItems: 1000,
 });
 
-server.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+const freePort = await detect(port);
+
+if (freePort !== port) {
+  console.log(`WARNING: Port ${port} is already in use, using port ${freePort} instead`);
+}
+
+server.listen(freePort, () => {
+  console.log(`Server is running on http://localhost:${freePort}`);
 });
