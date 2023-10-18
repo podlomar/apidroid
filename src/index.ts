@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFilter, execQuery, parseSearchParams } from './query.js';
 import { createServer } from './server.js';
 import parser from 'yargs-parser';
 

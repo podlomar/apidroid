@@ -2,14 +2,28 @@ import path from 'path';
 import { promises as fs, existsSync } from 'fs';
 import { Result } from 'monadix/result';
 
+export type JsonPrimitive = number | string | boolean | null;
+export type JsonObject = { [key: string]: Json };
+export type JsonArray = Json[];
+export type Json = JsonPrimitive | JsonObject | JsonArray;
+
+export const isPrimitive = (value: Json): value is JsonPrimitive => {
+  return (
+    typeof value === 'number' ||
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    value === null
+  );
+};
+
 export interface Collection {
   filePath: string,
   urlPath: string,
   lastId: number,
-  items: any[],
+  items: JsonObject[],
 }
 
-export type WithId<T> = T & { id: number };
+export type WithId<T extends JsonObject> = T & { id: number };
 
 export interface CollectionsOptions {
   readonly baseDir: string,
@@ -79,7 +93,7 @@ export class Collections {
     }
   };
 
-  public insert = async <T>(
+  public insert = async <T extends JsonObject>(
     collection: Collection, item: T,
   ): Promise<Result<WithId<T>, 'max-items' | 'error'>> => {
     if (collection.items.length >= this.options.maxItems) {
@@ -98,7 +112,7 @@ export class Collections {
     return Result.success(newItem);
   }
 
-  public update = async <T>(
+  public update = async <T extends JsonObject>(
     collection: Collection, item: WithId<T>,
   ): Promise<Result<'ok', 'not-found' | 'error'>> => {
     const itemIndex = collection.items.findIndex((i) => i.id === item.id);

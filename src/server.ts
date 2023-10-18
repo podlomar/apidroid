@@ -3,6 +3,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Collection, Collections, CollectionsOptions } from './collections.js';
 import { payload } from './payload.js';
+import { execQuery, parseSearchParams } from './query.js';
 
 declare global {
   namespace Express {
@@ -17,8 +18,9 @@ const collectionMiddleware = (collections: Collections) => {
     const segments = req.originalUrl.split('/');
     const itemId = Number(segments.at(-1));
     
+    const questionMarkIndex = req.originalUrl.indexOf('?');
     const urlPath = Number.isNaN(itemId)
-      ? req.originalUrl
+      ? req.originalUrl.slice(0, questionMarkIndex === -1 ? undefined : questionMarkIndex)
       : req.originalUrl.slice(0, req.originalUrl.lastIndexOf('/'));
 
     (await collections.load(urlPath)).match({
@@ -97,7 +99,21 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collections));
   
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
-    res.json(payload('ok', req.collection.items));
+    const queryResult = parseSearchParams(
+      new URLSearchParams(
+        req.originalUrl.slice(req.originalUrl.indexOf('?')),
+      ),
+    );
+    
+    queryResult.match({
+      success(query) {
+        const items = execQuery(req.collection.items, query);
+        res.json(payload('ok', items));
+      },
+      fail(error) {
+        res.status(400).json(payload('bad-request', [error]));
+      }
+    });
   });
 
   server.get(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
