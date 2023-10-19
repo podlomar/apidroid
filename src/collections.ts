@@ -1,6 +1,7 @@
 import path from 'path';
 import { promises as fs, existsSync } from 'fs';
 import { Result } from 'monadix/result';
+import jsonpatch, { JsonPatchError, Operation } from 'fast-json-patch';
 
 export type JsonPrimitive = number | string | boolean | null;
 export type JsonObject = { [key: string]: Json };
@@ -128,6 +129,30 @@ export class Collections {
       return Result.fail('error');
     }
   
+    return Result.success('ok');
+  }
+
+  public patch = async <T extends JsonObject>(
+    collection: Collection, id: number, patch: Operation[],
+  ): Promise<Result<'ok', 'not-found' | 'error' | JsonPatchError>> => {
+    const itemIndex = collection.items.findIndex((i) => i.id === id);
+    if (itemIndex === -1) {
+      return Result.fail('not-found');
+    }
+
+    const item = collection.items[itemIndex];
+    const error = jsonpatch.validate(patch, item);
+    if (error !== undefined) {
+      return Result.fail(error);
+    }
+
+    collection.items[itemIndex] = jsonpatch.applyPatch(item, patch).newDocument;
+    try {
+      await this.writeCollection(collection);
+    } catch (error) {
+      return Result.fail('error');
+    }
+    
     return Result.success('ok');
   }
 

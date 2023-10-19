@@ -2,6 +2,7 @@ import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
+import jsonpatch, { Operation } from 'fast-json-patch';
 import { Collection, Collections, CollectionsOptions } from './collections.js';
 import { payload } from './payload.js';
 import { execQuery, parseSearchParams } from './query.js';
@@ -196,6 +197,39 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
         }
       }
     });    
+  });
+
+  server.patch(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
+    const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
+    const patch = req.body as Operation[];
+    (await collections.patch(req.collection, id, patch)).match({
+      success() {
+        res.json(payload('ok', `Item with id ${id} was patched`));
+      },
+      fail(error) {
+        if (error === 'not-found') {
+          res.status(404).json(payload('bad-request', [{
+            code: 'not-found',
+            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+          }]));
+          return;
+        }
+
+        if (error === 'error') {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while saving item',
+          }]));
+          return;
+        }
+
+        res.status(400).json(payload('bad-request', [{
+          code: 'invalid-patch',
+          message: 'Invalid JSON patch',
+          meta: error,
+        }]));
+      }
+    });
   });
 
   server.delete(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
