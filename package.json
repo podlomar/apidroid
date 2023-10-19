@@ -12,7 +12,8 @@
     "test": "mocha"
   },
   "files": [
-    "dist"
+    "dist",
+    "public"
   ],
   "bin": "./dist/index.js",
   "repository": {

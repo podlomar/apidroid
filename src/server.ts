@@ -1,6 +1,7 @@
 import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
 import { Collection, Collections, CollectionsOptions } from './collections.js';
 import { payload } from './payload.js';
 import { execQuery, parseSearchParams } from './query.js';
@@ -72,6 +73,10 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   const server = express();
 
   server.use(cors());
+  server.use('/', express.static(
+    fileURLToPath(new URL('../public', import.meta.url)),
+    { index: 'index.html' },
+  ));
   server.use('/assets', express.static(path.resolve(collections.options.baseDir, 'assets')));
   server.use(express.json({
     limit: '10kb',
