@@ -1,10 +1,10 @@
 [
   {
-    "id": 0,
-    "name": "Apples"
-  },
-  {
     "id": 1,
     "name": "Oranges"
+  },
+  {
+    "id": 2,
+    "name": "Bananas"
   }
 ]

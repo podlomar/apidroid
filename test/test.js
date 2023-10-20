@@ -28,7 +28,7 @@ describe('GET collection', () => {
 
     expect(response.body).to.have.property('status').that.equals('ok');
     expect(response.body).to.have.property('result');
-    expect(response.body.result).to.deep.equal([
+    expect(response.body.result).that.deep.equals([
       { id: 0, name: 'Apples' },
       { id: 1, name: 'Oranges' },
     ]);      
@@ -41,7 +41,7 @@ describe('GET collection', () => {
 
     expect(response.body).to.have.property('status').that.equals('ok');
     expect(response.body).to.have.property('result');
-    expect(response.body.result).to.deep.equal([
+    expect(response.body.result).that.deep.equals([
       { id: 0, name: 'John Doe' },
       { id: 1, name: 'Will Smith' },
       { id: 2, name: 'Jennifer Aniston' },
@@ -56,7 +56,7 @@ describe('GET collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
     ]);
   });
@@ -70,7 +70,7 @@ describe('GET item from collection', () => {
 
     expect(response.body).to.have.property('status').that.equals('ok');
     expect(response.body).to.have.property('result');
-    expect(response.body.result).to.deep.equal({ id: 0, name: 'Apples' });
+    expect(response.body.result).that.deep.equals({ id: 0, name: 'Apples' });
   });
 
   it('should return 404 bad-request for non-existing collection', async function() {
@@ -79,7 +79,7 @@ describe('GET item from collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
     ]);
   });
@@ -90,7 +90,7 @@ describe('GET item from collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Item with id 2 not found in collection /api/products` },
     ]);
   });
@@ -101,7 +101,7 @@ describe('GET item from collection', () => {
       .expect(500);
 
     expect(response.body).to.have.property('status').that.equals('server-error');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'invalid-json', message: 'Collection with path /api/nojson does not have a valid JSON syntax' },
     ]);
   });
@@ -112,7 +112,7 @@ describe('GET item from collection', () => {
       .expect(500);
 
     expect(response.body).to.have.property('status').that.equals('server-error');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { 
         code: 'invalid-type',
         message: 'Collection with path /api/notarray is not a valid collection type',
@@ -131,7 +131,7 @@ describe('POST item to collection', () => {
 
     expect(response.body).to.have.property('status').that.equals('ok');
     expect(response.body).to.have.property('result');
-    expect(response.body.result).to.deep.equal({ insertedId: 2 });
+    expect(response.body.result).that.deep.equals({ insertedId: 2 });
   });
 
   it('should return 404 bad-request for non-existing collection', async function() {
@@ -141,7 +141,7 @@ describe('POST item to collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
     ]);
   });
@@ -153,7 +153,7 @@ describe('POST item to collection', () => {
       .expect(400);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'max-items', message: `Max items of 5 reached for collection /api/customers` },
     ]);
   });
@@ -177,7 +177,7 @@ describe('PUT item in collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
     ]);
   });
@@ -189,9 +189,67 @@ describe('PUT item in collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Item with id 5 not found in collection /api/customers` },
     ]);
+  });
+});
+
+describe('PATCH item in collection', () => {
+  it('should patch item in a collection', async function() {
+    const response = await request
+      .patch('/api/products/0')
+      .send([{ op: 'replace', path: '/name', value: 'Green Apples' }])
+      .expect(200);
+
+    expect(response.body).to.have.property('status').that.equals('ok');
+    expect(response.body).to.have.property('result').that.equals('Item with id 0 was patched');
+  });
+
+  it('should return 404 bad-request for non-existing collection', async function() {
+    const response = await request
+      .patch('/api/non-existing/0')
+      .send([{ op: 'replace', path: '/name', value: 'Green Apples' }])
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').that.deep.equals([
+      { code: 'not-found', message: `Collection with path /api/non-existing not found` },
+    ]);
+  });
+
+  it('should return 404 bad-request for non-existing item', async function() {
+    const response = await request
+      .patch('/api/customers/5')
+      .send([{ op: 'replace', path: '/name', value: 'Leonardo DiCaprio' }])
+      .expect(404);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').that.deep.equals([
+      { code: 'not-found', message: `Item with id 5 not found in collection /api/customers` },
+    ]);
+  });
+
+  it('should return 400 bad-request for invalid patch operation', async function() {
+    const response = await request
+      .patch('/api/products/0')
+      .send([{ op: 'invalid', path: '/name', value: 'Green Apples' }])
+      .expect(400);
+
+    expect(response.body).to.have.property('status').that.equals('bad-request');
+    expect(response.body).to.have.property('errors').that.deep.equals([{
+      code: 'invalid-patch',
+      message: 'Invalid JSON patch',
+      meta: {
+        name: 'OPERATION_OP_INVALID',
+        index: 0,
+        operation: {
+          op: 'invalid',
+          path: '/name',
+          value: 'Green Apples',
+        }
+      }
+    }]);
   });
 });
 
@@ -211,7 +269,7 @@ describe('DELETE item from collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Collection with path /api/non-existing not found` },
     ]);
   });
@@ -222,7 +280,7 @@ describe('DELETE item from collection', () => {
       .expect(404);
 
     expect(response.body).to.have.property('status').that.equals('bad-request');
-    expect(response.body).to.have.property('errors').to.deep.equal([
+    expect(response.body).to.have.property('errors').that.deep.equals([
       { code: 'not-found', message: `Item with id 5 not found in collection /api/customers` },
     ]);
   });
