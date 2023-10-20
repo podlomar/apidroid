@@ -22,6 +22,18 @@
   },
   "author": "Martin Podloucký",
   "license": "ISC",
+  "keywords": [
+    "JSON",
+    "serve",
+    "localhost",
+    "filesystem",
+    "dummy",
+    "mock",
+    "REST",
+    "RESTful",
+    "API",
+    "sandbox"
+  ],
   "bugs": {
     "url": "https://github.com/podlomar/jsonhost/issues"
   },
