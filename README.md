@@ -60,16 +60,31 @@ http://localhost:4000/images/logo.png
 
 ## CRUD operations
 
-Along with serving the contents of the JSON files, the server also supports CRUD operations.
-
-The following CRUD operations are supported:
+Along with serving the contents of the JSON files, the server also supports CRUD operations. The following CRUD operations are supported:
 
 | Method   | URL                   | Description                                                 |
 | -------- | --------------------- | ----------------------------------------------------------- |
 | `GET`    | `/api/collection`     | Returns the array of items inside JSON file.                |
 | `POST`   | `/api/collection`     | Appends new item to the end of the JSON array.              |
 | `PUT`    | `/api/collection/:id` | Replaces the contents of the an item with the request body. |
+| `PATCH`  | `/api/collection/:id` | Updates the contents of an item with the request body.      |
 | `DELETE` | `/api/collection/:id` | Deletes an item from the JSON array.                        |
+
+### POST method
+
+The POST method expects a JSON object in the request body. The object will be appended to the end of the collection with a new ID. The endpoint will return the ID of the newly created item.
+
+### PUT method
+
+The PUT method expects a JSON object in the request body. The object will replace the item with the specified ID.
+
+### PATCH method
+
+The PATCH method expects a [JSON Patch](https://jsonpatch.com/) object in the request body. The patch object will be applied to the item with the specified ID.
+
+### DELETE method
+
+The DELETE method deletes the item with the specified ID.
 
 ## Querying data
 
