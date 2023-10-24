@@ -1,4 +1,5 @@
 import path from 'path';
+import { existsSync } from 'fs';
 import { walkSync } from '@nodelib/fs.walk';
 
 export const fileCollectionRegex = /api\/[a-z][a-z_-]*\.json/;
@@ -10,6 +11,11 @@ export interface CollectionEntry {
 }
 
 export const discover = (baseDir: string): CollectionEntry[] => {
+  const apiDir = path.join(baseDir, 'api');
+  if (!existsSync(apiDir)) {
+    return [];
+  }
+  
   const entries = walkSync(path.join(baseDir, 'api'));
 
   const result: CollectionEntry[] = [];

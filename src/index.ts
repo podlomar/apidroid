@@ -9,10 +9,11 @@ const argv = parser(process.argv.slice(2));
 const port = argv.port || 4000;
 
 const freePort = await detect(port);
+const version = process.env.npm_package_version || 'unknown';
 
 const server = createServer({
   serverUrl: `http://localhost:${freePort}`,
-  version: process.env.npm_package_version || 'unknown',
+  version,
   collections: {
     baseDir: argv._[0]?.toString(),
     maxItems: 1000,
@@ -22,6 +23,7 @@ const server = createServer({
 server.listen(freePort, () => {
   console.log(
     boxen(
+      `jsonhost v${version}\n\n` + 
       (freePort !== port
         ? `WARNING: Port ${port} is already in use, using port ${freePort} instead\n\n`
         : ''
