@@ -2,8 +2,8 @@ import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-import jsonpatch, { Operation } from 'fast-json-patch';
-import { Collection, Collections, CollectionsOptions } from './collections.js';
+import { Operation } from 'fast-json-patch';
+import { Collection, CollectionOptions } from './collection.js';
 import { payload } from './payload.js';
 import { execQuery, parseSearchParams } from './query.js';
 
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-const collectionMiddleware = (collections: Collections) => {
+const collectionMiddleware = (options: CollectionOptions) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const segments = req.originalUrl.split('/');
     const itemId = Number(segments.at(-1));
@@ -25,7 +25,7 @@ const collectionMiddleware = (collections: Collections) => {
       ? req.originalUrl.slice(0, questionMarkIndex === -1 ? undefined : questionMarkIndex)
       : req.originalUrl.slice(0, req.originalUrl.lastIndexOf('/'));
 
-    (await collections.load(urlPath)).match({
+    (await Collection.load(urlPath, options)).match({
       success(collection) {
         req.collection = collection;
         next();
@@ -68,17 +68,19 @@ const collectionMiddleware = (collections: Collections) => {
   };
 }
 
-export const createServer = (options: Partial<CollectionsOptions>) => {
-  const collections = new Collections(options);
-
+export const createServer = (options: Partial<CollectionOptions>) => {
   const server = express();
+  const resolvedOptions: CollectionOptions = {
+    baseDir: options.baseDir ?? process.cwd(),
+    maxItems: options.maxItems ?? 1000,
+  };
 
   server.use(cors());
   server.use('/', express.static(
     fileURLToPath(new URL('../public', import.meta.url)),
     { index: 'index.html' },
   ));
-  server.use('/assets', express.static(path.resolve(collections.options.baseDir, 'assets')));
+  server.use('/assets', express.static(path.resolve(resolvedOptions.baseDir, 'assets')));
   server.use(express.json({
     limit: '10kb',
   }));
@@ -102,7 +104,7 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
     }
   });
 
-  server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collections));
+  server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(resolvedOptions));
   
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
     const queryResult = parseSearchParams(
@@ -113,7 +115,7 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
     
     queryResult.match({
       success(query) {
-        const items = execQuery(req.collection.items, query);
+        const items = req.collection.query(query);
         res.json(payload('ok', items));
       },
       fail(error) {
@@ -126,7 +128,7 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
     const urlPath = req.path.slice(0, req.path.lastIndexOf('/'));
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 
-    const collectionResult = await collections.load(urlPath);
+    const collectionResult = await Collection.load(urlPath, resolvedOptions);
     if (collectionResult.isFail()) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',
@@ -136,7 +138,7 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
     };
 
     const collection = collectionResult.get();
-    const item = collection.items.find((item: any) => item.id === id);
+    const item = collection.find(id);
     if (item === undefined) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',
@@ -149,7 +151,8 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   });
 
   server.post(new RegExp(`${collectionPath}$`), async (req, res) => {
-    (await collections.insert(req.collection, req.body)).match({
+    const collection = req.collection;
+    (await collection.insert(req.body)).match({
       success(item) {
         res.status(201).json(payload('ok', { insertedId: item.id }));
       },
@@ -157,12 +160,12 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
         if (code === 'max-items') {
           res.status(400).json(payload('bad-request', [{
             code: 'max-items',
-            message: `Max items of ${collections.options.maxItems} reached for collection ${req.collection.urlPath}`,
+            message: `Max items of ${collection.maxItems} reached for collection ${collection.urlPath}`,
           }]));
           return;
         }
 
-        if (code === 'error') {
+        if (code === 'store-error') {
           res.status(500).json(payload('server-error', [{
             code: 'error',
             message: 'Error while saving item',
@@ -174,8 +177,9 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   });
 
   server.put(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
+    const collection = req.collection;
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
-    (await collections.update(req.collection, { id, ...req.body })).match({
+    (await collection.update(id, { ...req.body })).match({
       success() {
         res.json(payload('ok', `Item with id ${id} was updated`));
       },
@@ -183,12 +187,12 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
         if (code === 'not-found') {
           res.status(404).json(payload('bad-request', [{
             code: 'not-found',
-            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+            message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
           return;
         }
 
-        if (code === 'error') {
+        if (code === 'store-error') {
           res.status(500).json(payload('server-error', [{
             code: 'error',
             message: 'Error while saving item',
@@ -200,9 +204,10 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   });
 
   server.patch(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
+    const collection = req.collection;
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
     const patch = req.body as Operation[];
-    (await collections.patch(req.collection, id, patch)).match({
+    (await collection.patch(id, patch)).match({
       success() {
         res.json(payload('ok', `Item with id ${id} was patched`));
       },
@@ -210,12 +215,12 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
         if (error === 'not-found') {
           res.status(404).json(payload('bad-request', [{
             code: 'not-found',
-            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+            message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
           return;
         }
 
-        if (error === 'error') {
+        if (error === 'store-error') {
           res.status(500).json(payload('server-error', [{
             code: 'error',
             message: 'Error while saving item',
@@ -233,8 +238,9 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
   });
 
   server.delete(new RegExp(`${collectionPath}/${idPattern}$`), async (req, res) => {
+    const collection = req.collection;
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1));
-    (await collections.delete(req.collection, id)).match({
+    (await collection.delete(id)).match({
       success() {
         res.json(payload('ok', `Item with id ${id} was deleted`));
       },
@@ -242,12 +248,12 @@ export const createServer = (options: Partial<CollectionsOptions>) => {
         if (code === 'not-found') {
           res.status(404).json(payload('bad-request', [{
             code: 'not-found',
-            message: `Item with id ${id} not found in collection ${req.collection.urlPath}`,
+            message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
           return;
         }
 
-        if (code === 'error') {
+        if (code === 'store-error') {
           res.status(500).json(payload('server-error', [{
             code: 'error',
             message: 'Error while saving item',

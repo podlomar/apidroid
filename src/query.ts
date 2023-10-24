@@ -1,5 +1,5 @@
 import { Result } from "monadix/result";
-import { JsonObject, JsonPrimitive, isPrimitive } from "./collections.js";
+import { JsonObject, JsonPrimitive, isPrimitive } from "./values.js";
 
 const numberOperators = ['lt', 'gt', 'lte', 'gte'];
 const stringOperators = ['sub'];
