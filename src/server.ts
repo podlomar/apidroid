@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 import { Operation } from 'fast-json-patch';
 import { Collection, CollectionOptions } from './collection.js';
 import { payload } from './payload.js';
-import { execQuery, parseSearchParams } from './query.js';
+import { parseSearchParams } from './query.js';
+import { discover } from './discover.js';
 
 declare global {
   namespace Express {
@@ -13,6 +14,12 @@ declare global {
       collection: Collection,
     }
   }
+}
+
+export interface ServerOptions {
+  readonly serverUrl: string,
+  readonly version: string,
+  readonly collections?: Partial<CollectionOptions>,
 }
 
 const collectionMiddleware = (options: CollectionOptions) => {
@@ -68,11 +75,12 @@ const collectionMiddleware = (options: CollectionOptions) => {
   };
 }
 
-export const createServer = (options: Partial<CollectionOptions>) => {
+export const createServer = (options: ServerOptions) => {
   const server = express();
-  const resolvedOptions: CollectionOptions = {
-    baseDir: options.baseDir ?? process.cwd(),
-    maxItems: options.maxItems ?? 1000,
+  
+  const collectionOptions: CollectionOptions = {
+    baseDir: options.collections?.baseDir ?? process.cwd(),
+    maxItems: options.collections?.maxItems ?? 1000,
   };
 
   server.use(cors());
@@ -80,13 +88,12 @@ export const createServer = (options: Partial<CollectionOptions>) => {
     fileURLToPath(new URL('../public', import.meta.url)),
     { index: 'index.html' },
   ));
-  server.use('/assets', express.static(path.resolve(resolvedOptions.baseDir, 'assets')));
+  server.use('/assets', express.static(path.resolve(collectionOptions.baseDir, 'assets')));
   server.use(express.json({
     limit: '10kb',
   }));
 
-  const pathSegment = '[a-z][a-z_-]*';
-  const collectionPath = `^/api(/${pathSegment})+`;
+  const collectionPath = `^/api/[a-z][a-z_-]*`;
   const idPattern = '[0-9]+';
 
   server.use((error: Error, req: Request, res: Response, next: NextFunction): void => {
@@ -104,8 +111,18 @@ export const createServer = (options: Partial<CollectionOptions>) => {
     }
   });
 
-  server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(resolvedOptions));
+  server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collectionOptions));
   
+  server.get('/api', async (req, res) => {
+    const entries = discover(collectionOptions.baseDir);
+    res.json(payload('ok', {
+      message: `This API is powered by jsonhost v${options.version}`,
+      collections: entries.map(entry => ({
+        url: `${options.serverUrl}/${entry.urlPath}`,
+      })),
+    }));
+  });
+
   server.get(new RegExp(`${collectionPath}$`), async (req, res) => {
     const queryResult = parseSearchParams(
       new URLSearchParams(
@@ -128,7 +145,7 @@ export const createServer = (options: Partial<CollectionOptions>) => {
     const urlPath = req.path.slice(0, req.path.lastIndexOf('/'));
     const id = Number(req.path.slice(req.path.lastIndexOf('/') + 1))
 
-    const collectionResult = await Collection.load(urlPath, resolvedOptions);
+    const collectionResult = await Collection.load(urlPath, collectionOptions);
     if (collectionResult.isFail()) {
       res.status(404).json(payload('bad-request', [{
         code: 'not-found',

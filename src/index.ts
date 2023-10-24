@@ -8,12 +8,16 @@ import boxen from 'boxen';
 const argv = parser(process.argv.slice(2));
 const port = argv.port || 4000;
 
-const server = createServer({
-  baseDir: argv._[0]?.toString(),
-  maxItems: 1000,
-});
-
 const freePort = await detect(port);
+
+const server = createServer({
+  serverUrl: `http://localhost:${freePort}`,
+  version: process.env.npm_package_version || 'unknown',
+  collections: {
+    baseDir: argv._[0]?.toString(),
+    maxItems: 1000,
+  },
+});
 
 server.listen(freePort, () => {
   console.log(
