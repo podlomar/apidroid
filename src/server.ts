@@ -7,6 +7,7 @@ import { Collection, CollectionOptions } from './collection.js';
 import { payload } from './payload.js';
 import { parseSearchParams } from './query.js';
 import { discover } from './discover.js';
+import { engine } from 'express-handlebars';
 
 declare global {
   namespace Express {
@@ -83,8 +84,12 @@ export const createServer = (options: ServerOptions) => {
     maxItems: options.collections?.maxItems ?? 1000,
   };
 
-  server.use(cors());
-  server.use('/', express.static(dirname('public'), { index: 'index.html' }));
+  server.engine('handlebars', engine());
+  server.set('view engine', 'handlebars');
+  server.set('views', dirname('public/views'));
+  
+  server.use('/api', cors());
+  server.use('/styles', express.static(dirname('public/styles')));
   server.use('/assets', express.static(path.resolve(collectionOptions.baseDir, 'assets')));
   server.use(express.json({
     limit: '10kb',
@@ -110,6 +115,12 @@ export const createServer = (options: ServerOptions) => {
 
   server.use(new RegExp(`${collectionPath}(/${idPattern})?$`), collectionMiddleware(collectionOptions));
   
+  server.get('/', (req, res) => {
+    res.render('home', {
+      version: options.version,
+    });
+  });
+
   server.get('/api', async (req, res) => {
     const entries = discover(collectionOptions.baseDir);
     res.json(payload('ok', {
