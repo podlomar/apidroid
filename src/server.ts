@@ -1,7 +1,7 @@
 import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
+import { dirname } from './dirname.js';
 import { Operation } from 'fast-json-patch';
 import { Collection, CollectionOptions } from './collection.js';
 import { payload } from './payload.js';
@@ -84,10 +84,7 @@ export const createServer = (options: ServerOptions) => {
   };
 
   server.use(cors());
-  server.use('/', express.static(
-    fileURLToPath(new URL('../public', import.meta.url)),
-    { index: 'index.html' },
-  ));
+  server.use('/', express.static(dirname('public'), { index: 'index.html' }));
   server.use('/assets', express.static(path.resolve(collectionOptions.baseDir, 'assets')));
   server.use(express.json({
     limit: '10kb',

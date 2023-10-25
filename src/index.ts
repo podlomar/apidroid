@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'fs';
+import { dirname } from './dirname.js';
 import { createServer } from './server.js';
 import parser from 'yargs-parser';
 import detect from 'detect-port';
@@ -9,7 +11,10 @@ const argv = parser(process.argv.slice(2));
 const port = argv.port || 4000;
 
 const freePort = await detect(port);
-const version = process.env.npm_package_version || 'unknown';
+const packageJson = JSON.parse(
+  readFileSync(dirname('package.json'), 'utf-8')
+);
+const version = packageJson.version;
 
 const server = createServer({
   serverUrl: `http://localhost:${freePort}`,
