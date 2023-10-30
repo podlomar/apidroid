@@ -206,7 +206,7 @@ router.get('/', (req, res) => {
 export default router;
 ```
 
-You can also define custom endpoints in directories using the `routes.js` file:
+You can also define custom endpoints in directories using the `route.js` file:
 
 ```
 api
