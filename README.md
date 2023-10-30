@@ -1,6 +1,22 @@
 # jsonhost
 
-A simple HTTP server that serves JSON files from a directory. Useful for mocking APIs or educational purposes.
+A simple HTTP server that serves JSON files from a directory. Useful for mocking APIs or educational purposes. You can also provide your own endpoint implementations with a simple JavaScript file.
+
+## Outline
+
+- [Example usage](#example-usage)
+- [Directory structure](#directory-structure)
+- [Assets](#assets)
+- [CRUD operations](#crud-operations)
+  - [POST method](#post-method)
+  - [PUT method](#put-method)
+  - [PATCH method](#patch-method)
+  - [DELETE method](#delete-method)
+- [Querying data](#querying-data)
+  - [Filtering](#filtering)
+  - [Selecting fields](#selecting-fields)
+  - [Limits and offsets](#limits-and-offsets)
+- [Custom endpoints](#custom-endpoints)
 
 ## Example usage
 
@@ -18,7 +34,7 @@ $ npx jsonhost ./data --port 4000
 
 ## Directory structure
 
-The directory structure is used to determine the URL structure. For example, the following directory structure creates two collections:
+The directory structure is used to determine the URL structure. For example, the following directory structure creates two endpoints with two data collections:
 
 ```
 data
@@ -54,7 +70,15 @@ assets
 
 You can access the logo image at:
 
-```
+```import express from 'express';
+
+const router = express.Router();
+router.get('/', (req, res) => {
+  res.send('Hello world');
+});
+
+export default router;
+
 http://localhost:4000/images/logo.png
 ```
 
@@ -82,7 +106,15 @@ The PUT method expects a JSON object in the request body. The object will replac
 
 The PATCH method expects a [JSON Patch](https://jsonpatch.com/) object in the request body. The patch object will be applied to the item with the specified ID.
 
-### DELETE method
+### DELETE methodimport express from 'express';
+
+const router = express.Router();
+router.get('/', (req, res) => {
+  res.send('Hello world');
+});
+
+export default router;
+
 
 The DELETE method deletes the item with the specified ID.
 
@@ -95,7 +127,15 @@ You can query data returned by the GET method by adding query parameters to the 
 To get all users with the name "John":
 
 ```
-http://localhost:4000/users?filter=name:eg:John
+http://localhost:4000/users?filter=import express from 'express';
+
+const router = express.Router();
+router.get('/', (req, res) => {
+  res.send('Hello world');
+});
+
+export default router;
+name:eg:John
 ```
 
 The query parameters are in the format `key:operator:value`. The following operators are supported:
@@ -142,4 +182,40 @@ To skip the first `n` items, you can use the `offset` query parameter. For examp
 
 ```
 http://localhost:4000/users?offset=10&limit=10
+```
+
+## Custom endpoints
+
+You can also create custom endpoints by placing JavaScript files in the endpoint directory. For example, if you have the following directory structure:
+
+```
+api
+└── custom.js
+```
+
+You can access the endpoint as usual at:
+
+```
+http://localhost:4000/api/custom
+```
+
+The JavaScript file must be an ES module with default export of an Express router. For example:
+ 
+```js
+import express from 'express';
+
+const router = express.Router();
+router.get('/', (req, res) => {
+  res.send('Hello world');
+});
+
+export default router;
+```
+
+You can also define custom endpoints in directories using the `routes.js` file:
+
+```
+api
+└── custom
+    └── route.js
 ```
