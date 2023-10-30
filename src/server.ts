@@ -1,5 +1,6 @@
 import path from 'path';
-import express, { Request, Response, NextFunction } from 'express';
+import { existsSync } from 'fs';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import cors from 'cors';
 import { dirname } from './dirname.js';
 import { Operation } from 'fast-json-patch';
@@ -32,6 +33,43 @@ const collectionMiddleware = (options: CollectionOptions) => {
     const urlPath = Number.isNaN(itemId)
       ? req.originalUrl.slice(0, questionMarkIndex === -1 ? undefined : questionMarkIndex)
       : req.originalUrl.slice(0, req.originalUrl.lastIndexOf('/'));
+
+    const routeFile1 = path.resolve(options.baseDir, `${urlPath.slice(1)}.js`);
+    const routeFile2 = path.resolve(options.baseDir, `${urlPath.slice(1)}/route.js`);
+
+    const routeFile = existsSync(routeFile1)
+      ? routeFile1
+      : existsSync(routeFile2)
+        ? routeFile2
+        : undefined;
+
+    if (routeFile !== undefined) {
+      try {
+        const route = (await import(routeFile)).default as Router;
+        route(req, res, next);
+        return;
+      } catch(error) {
+        console.error(error);
+        
+        if (error instanceof SyntaxError || error instanceof TypeError) {
+          res.status(500).json(payload('server-error', [{
+            code: 'error',
+            message: 'Error while loading route file',
+            meta: {
+              message: error.message,
+              stack: error.stack?.split('\n'),
+            },
+          }]));
+          return;
+        }
+
+        res.status(500).json(payload('server-error', [{
+          code: 'error',
+          message: 'Error while loading route file',
+          meta: error,
+        }]));
+      }
+    }
 
     (await Collection.load(urlPath, options)).match({
       success(collection) {
