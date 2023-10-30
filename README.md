@@ -100,21 +100,15 @@ The POST method expects a JSON object in the request body. The object will be ap
 
 ### PUT method
 
-The PUT method expects a JSON object in the request body. The object will replace the item with the specified ID.
+The PUT method expects a JSON object in the request body. The object will replace the item with the specified ID. 
+
+You cannot use PUT to create new items. If the item with the specified ID does not exist, the endpoint will return a 404 error. For creating new items, use the POST method instead.
 
 ### PATCH method
 
 The PATCH method expects a [JSON Patch](https://jsonpatch.com/) object in the request body. The patch object will be applied to the item with the specified ID.
 
-### DELETE methodimport express from 'express';
-
-const router = express.Router();
-router.get('/', (req, res) => {
-  res.send('Hello world');
-});
-
-export default router;
-
+### DELETE method
 
 The DELETE method deletes the item with the specified ID.
 
