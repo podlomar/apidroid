@@ -11,3 +11,11 @@ export const isPrimitive = (value: Json): value is JsonPrimitive => {
     value === null
   );
 };
+
+export const isArray = (value: Json): value is JsonArray => {
+  return Array.isArray(value);
+};
+
+export const isObject = (value: Json): value is JsonObject => {
+  return !isPrimitive(value) && !isArray(value);
+};

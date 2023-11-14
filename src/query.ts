@@ -1,5 +1,5 @@
 import { Result } from "monadix/result";
-import { JsonObject, JsonPrimitive, isPrimitive } from "./values.js";
+import { Json, JsonObject, JsonPrimitive, isObject, isPrimitive } from "./values.js";
 
 const numberOperators = ['lt', 'gt', 'lte', 'gte'];
 const stringOperators = ['sub'];
@@ -28,19 +28,19 @@ export const isOperator = (value: string): value is Operator => {
 };
 
 export type NumberClause = [
-  key: string,
+  path: string[],
   op: NumberOperator,
   val: number,
 ]
 
 export type StringClause = [
-  key: string,
+  peth: string[],
   op: StringOperator,
   val: string,
 ]
 
 export type PrimitiveClause = [
-  key: string,
+  path: string[],
   op: PrimitiveOperator,
   val: JsonPrimitive,
 ]
@@ -78,8 +78,29 @@ export const execSelect = (items: JsonObject[], select: string[]): JsonObject[] 
   });
 };
 
+export const getValueByPath = (item: JsonObject, path: string[]): Json | undefined => {
+  let value: Json | undefined = item;
+  for (const key of path) {
+    if (value === undefined) {
+      return undefined;
+    }
+    
+    if (!isObject(value)) {
+      return undefined;
+    }
+
+    value = value[key];
+  }
+  
+  return value;
+}
+
 export const execClause = (item: JsonObject, clause: Clause): boolean => {
-  const itemValue = item[clause[0]];
+  const itemValue = getValueByPath(item, clause[0]);
+  if (itemValue === undefined) {
+    return false;
+  }
+  
   if (!isPrimitive(itemValue)) {
     return false;
   }
@@ -181,14 +202,16 @@ export interface ParseError {
 }
 
 export const parseClause = (clauseParam: string): Result<Clause, ParseError> => {
-  const [key, op, val] = clauseParam.split(':');
+  const [pathString, op, val] = clauseParam.split(':');
   
-  if (key === undefined || op === undefined || val === undefined) {
+  if (pathString === undefined || op === undefined || val === undefined) {
     return Result.fail({
       code: 'invalid-filter-clause',
       message: `Clause ${clauseParam} is not a valid filter clause`,
     });
   }
+
+  const path = pathString.split('.');
 
   if(isNumberOperator(op)) {
     const valNumber = Number(val);
@@ -199,31 +222,31 @@ export const parseClause = (clauseParam: string): Result<Clause, ParseError> => 
       });
     }
 
-    return Result.success([key, op, valNumber]);
+    return Result.success([path, op, valNumber]);
   }
 
   if(isStringOperator(op)) {
-    return Result.success([key, op, val]);
+    return Result.success([path, op, val]);
   }
 
   if(isPrimitiveOperator(op)) {
     if (val === 'true') {
-      return Result.success([key, op, true]);
+      return Result.success([path, op, true]);
     }
 
     if (val === 'false') {
-      return Result.success([key, op, false]);
+      return Result.success([path, op, false]);
     }
 
     if (val === 'null') {
-      return Result.success([key, op, null]);
+      return Result.success([path, op, null]);
     }
 
     if (!Number.isNaN(Number(val))) {
-      return Result.success([key, op, Number(val)]);
+      return Result.success([path, op, Number(val)]);
     }
 
-    return Result.success([key, op, val]);
+    return Result.success([path, op, val]);
   }
 
   return Result.fail({
