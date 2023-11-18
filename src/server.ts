@@ -220,6 +220,14 @@ export const createServer = (options: ServerOptions) => {
         res.status(201).json(payload('ok', { insertedId: item.id }));
       },
       fail(code) {
+        if (code === 'extra-id') {
+          res.status(400).json(payload('bad-request', [{
+            code: 'extra-id',
+            message: `Do not provide an id field when inserting a new item to a collection`,
+          }]));
+          return;
+        }
+
         if (code === 'max-items') {
           res.status(400).json(payload('bad-request', [{
             code: 'max-items',
