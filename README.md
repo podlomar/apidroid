@@ -23,13 +23,13 @@ A simple HTTP server that serves JSON files from a directory. Useful for mocking
 To serve the content of the current directory on port `4000`:
 
 ```bash
-$ npx jsonhost
+$ npx jsonhost@latest
 ```
 
 You can also specify a directory and port to serve on:
 
 ```bash
-$ npx jsonhost ./data --port 4000
+$ npx jsonhost@latest ./data --port 4000
 ```
 
 ## Directory structure
@@ -37,7 +37,7 @@ $ npx jsonhost ./data --port 4000
 The directory structure is used to determine the URL structure. For example, the following directory structure creates two endpoints with two data collections:
 
 ```
-data
+api
 ├── users.json
 └── posts
     └── items.json
@@ -59,7 +59,7 @@ Each JSON file must contain and array of objects. The array will be served as th
 You can also serve static assets by placing them in the `assets` directory. For example, if you have the following directory structure:
 
 ```
-data
+api
 ├── users.json
 └── posts
     └── items.json
@@ -70,16 +70,8 @@ assets
 
 You can access the logo image at:
 
-```import express from 'express';
-
-const router = express.Router();
-router.get('/', (req, res) => {
-  res.send('Hello world');
-});
-
-export default router;
-
-http://localhost:4000/images/logo.png
+```
+http://localhost:4000/assets/images/logo.png
 ```
 
 ## CRUD operations
@@ -89,7 +81,7 @@ Along with serving the contents of the JSON files, the server also supports CRUD
 | Method   | URL                   | Description                                                 |
 | -------- | --------------------- | ----------------------------------------------------------- |
 | `GET`    | `/api/collection`     | Returns the array of items inside JSON file.                |
-| `POST`   | `/api/collection`     | Appends new item to the end of the JSON array.              |
+| `POST`   | `/api/collection`     | Appends new item to the end of the JSON array               |
 | `PUT`    | `/api/collection/:id` | Replaces the contents of the an item with the request body. |
 | `PATCH`  | `/api/collection/:id` | Updates the contents of an item with the request body.      |
 | `DELETE` | `/api/collection/:id` | Deletes an item from the JSON array.                        |
@@ -121,15 +113,7 @@ You can query data returned by the GET method by adding query parameters to the 
 To get all users with the name "John":
 
 ```
-http://localhost:4000/users?filter=import express from 'express';
-
-const router = express.Router();
-router.get('/', (req, res) => {
-  res.send('Hello world');
-});
-
-export default router;
-name:eg:John
+http://localhost:4000/users?filter=name:eq:John
 ```
 
 The query parameters are in the format `key:operator:value`. The following operators are supported:
