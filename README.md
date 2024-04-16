@@ -1,4 +1,4 @@
-# jsonhost
+# apidroid
 
 A simple HTTP server that serves JSON files from a directory. Useful for mocking APIs or educational purposes. You can also provide your own endpoint implementations with a simple JavaScript file.
 
@@ -23,13 +23,13 @@ A simple HTTP server that serves JSON files from a directory. Useful for mocking
 To serve the content of the current directory on port `4000`:
 
 ```bash
-$ npx jsonhost@latest
+$ npx apidroid@latest
 ```
 
 You can also specify a directory and port to serve on:
 
 ```bash
-$ npx jsonhost@latest ./data --port 4000
+$ npx apidroid@latest ./data --port 4000
 ```
 
 ## Directory structure

@@ -162,7 +162,7 @@ export const createServer = (options: ServerOptions) => {
   server.get('/api', async (req, res) => {
     const entries = discover(collectionOptions.baseDir);
     res.json(payload('ok', {
-      message: `This API is powered by jsonhost v${options.version}`,
+      message: `This API is powered by apidroid v${options.version}`,
       collections: entries.map(entry => ({
         url: `${options.serverUrl}/${entry.urlPath}`,
       })),

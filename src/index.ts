@@ -28,7 +28,7 @@ const server = createServer({
 server.listen(freePort, () => {
   console.log(
     boxen(
-      `jsonhost v${version}\n\n` + 
+      `apidroid v${version}\n\n` + 
       (freePort !== port
         ? `WARNING: Port ${port} is already in use, using port ${freePort} instead\n\n`
         : ''
