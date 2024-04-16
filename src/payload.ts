@@ -4,29 +4,20 @@ export interface ResponseError {
   meta?: any,
 }
 
-export interface OkPayload {
-  status: 'ok',
-  result: any,
+export interface DataPayload {
+  data: any,
 }
 
 export interface ErrorPayload {
   errors: ResponseError[],
 }
 
-export interface BadRequestPayload extends ErrorPayload {
-  status: 'bad-request',
-}
+export type Payload = DataPayload | ErrorPayload;
 
-export interface ServerErrorPayload extends ErrorPayload {
-  status: 'server-error',
-}
-
-export type Payload = OkPayload | BadRequestPayload | ServerErrorPayload;
-
-export const payload = (status: Payload['status'], data: any): Payload => {
+export const payload = (status: 'ok' | 'error', content: any): Payload => {
   if (status === 'ok') {
-    return { status, result: data };
+    return { data: content };
   }
 
-  return { status, errors: data };
+  return { errors: content };
 };

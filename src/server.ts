@@ -52,7 +52,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
         console.error(error);
         
         if (error instanceof SyntaxError || error instanceof TypeError) {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while loading route file',
             meta: {
@@ -63,7 +63,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
           return;
         }
 
-        res.status(500).json(payload('server-error', [{
+        res.status(500).json(payload('error', [{
           code: 'error',
           message: 'Error while loading route file',
           meta: error,
@@ -78,7 +78,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
       },
       fail(code) {
         if (code === 'invalid-type') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'invalid-type',
             message: `Collection with path ${urlPath} is not a valid collection type`,
             meta: 'The collection must be an array of objects with an id property of type number',
@@ -87,7 +87,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
         }
 
         if (code === 'invalid-json') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'invalid-json',
             message: `Collection with path ${urlPath} does not have a valid JSON syntax`,
           }]));
@@ -95,7 +95,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
         }
 
         if (code === 'not-found') {
-          res.status(404).json(payload('bad-request', [{
+          res.status(404).json(payload('error', [{
             code: 'not-found',
             message: `Collection with path ${urlPath} not found`,
           }]));
@@ -103,7 +103,7 @@ const collectionMiddleware = (options: CollectionOptions) => {
         }
 
         if (code === 'unknown') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while loading collection file',
           }]));
@@ -138,12 +138,12 @@ export const createServer = (options: ServerOptions) => {
 
   server.use((error: Error, req: Request, res: Response, next: NextFunction): void => {
     if (error instanceof SyntaxError) {
-      res.status(400).json(payload('bad-request', [{
+      res.status(400).json(payload('error', [{
         code: 'invalid-json',
         message: 'Invalid JSON',
       }]));
     } else {
-      res.status(500).json(payload('server-error', [{
+      res.status(500).json(payload('error', [{
         code: 'error',
         message: 'Internal server error',
         meta: { error },
@@ -182,7 +182,7 @@ export const createServer = (options: ServerOptions) => {
         res.json(payload('ok', items));
       },
       fail(error) {
-        res.status(400).json(payload('bad-request', [error]));
+        res.status(400).json(payload('error', [error]));
       }
     });
   });
@@ -193,7 +193,7 @@ export const createServer = (options: ServerOptions) => {
 
     const collectionResult = await Collection.load(urlPath, collectionOptions);
     if (collectionResult.isFail()) {
-      res.status(404).json(payload('bad-request', [{
+      res.status(404).json(payload('error', [{
         code: 'not-found',
         message: `Collection with path ${urlPath} not found`,
       }]));
@@ -203,7 +203,7 @@ export const createServer = (options: ServerOptions) => {
     const collection = collectionResult.get();
     const item = collection.find(id);
     if (item === undefined) {
-      res.status(404).json(payload('bad-request', [{
+      res.status(404).json(payload('error', [{
         code: 'not-found',
         message: `Item with id ${id} not found in collection ${collection.urlPath}`,
       }]));
@@ -221,7 +221,7 @@ export const createServer = (options: ServerOptions) => {
       },
       fail(code) {
         if (code === 'extra-id') {
-          res.status(400).json(payload('bad-request', [{
+          res.status(400).json(payload('error', [{
             code: 'extra-id',
             message: `Do not provide an id field when inserting a new item to a collection`,
           }]));
@@ -229,7 +229,7 @@ export const createServer = (options: ServerOptions) => {
         }
 
         if (code === 'max-items') {
-          res.status(400).json(payload('bad-request', [{
+          res.status(400).json(payload('error', [{
             code: 'max-items',
             message: `Max items of ${collection.maxItems} reached for collection ${collection.urlPath}`,
           }]));
@@ -237,7 +237,7 @@ export const createServer = (options: ServerOptions) => {
         }
 
         if (code === 'store-error') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while saving item',
           }]));
@@ -256,7 +256,7 @@ export const createServer = (options: ServerOptions) => {
       },
       fail(code) {
         if (code === 'not-found') {
-          res.status(404).json(payload('bad-request', [{
+          res.status(404).json(payload('error', [{
             code: 'not-found',
             message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
@@ -264,7 +264,7 @@ export const createServer = (options: ServerOptions) => {
         }
 
         if (code === 'store-error') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while saving item',
           }]));
@@ -284,7 +284,7 @@ export const createServer = (options: ServerOptions) => {
       },
       fail(error) {
         if (error === 'not-found') {
-          res.status(404).json(payload('bad-request', [{
+          res.status(404).json(payload('error', [{
             code: 'not-found',
             message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
@@ -292,14 +292,14 @@ export const createServer = (options: ServerOptions) => {
         }
 
         if (error === 'store-error') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while saving item',
           }]));
           return;
         }
 
-        res.status(400).json(payload('bad-request', [{
+        res.status(400).json(payload('error', [{
           code: 'invalid-patch',
           message: 'Invalid JSON patch',
           meta: error,
@@ -317,7 +317,7 @@ export const createServer = (options: ServerOptions) => {
       },
       fail(code) {
         if (code === 'not-found') {
-          res.status(404).json(payload('bad-request', [{
+          res.status(404).json(payload('error', [{
             code: 'not-found',
             message: `Item with id ${id} not found in collection ${collection.urlPath}`,
           }]));
@@ -325,7 +325,7 @@ export const createServer = (options: ServerOptions) => {
         }
 
         if (code === 'store-error') {
-          res.status(500).json(payload('server-error', [{
+          res.status(500).json(payload('error', [{
             code: 'error',
             message: 'Error while saving item',
           }]));
