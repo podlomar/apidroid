@@ -166,6 +166,7 @@ export const createServer = (options: ServerOptions) => {
       collections: entries.map(entry => ({
         url: `${options.serverUrl}/${entry.urlPath}`,
       })),
+      servedFrom: path.resolve(collectionOptions.baseDir),
     }));
   });
 
