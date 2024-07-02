@@ -1,6 +1,6 @@
 {
   "name": "apidroid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Serve json data from files on disk",
   "main": "dist/index.js",
   "type": "module",
